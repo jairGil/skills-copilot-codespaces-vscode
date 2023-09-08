@@ -1,18 +1,46 @@
-// create web server
-var express = require('express');
-var app = express();
-var bodyParser = require('body-parser');
+// Create web server
+// Run: node comments.js
+// Note: install node.js first
+
+var http = require('http');
 var fs = require('fs');
-var path = require('path');
+var url = require('url');
 
-// parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }));
+var server = http.createServer(function (request, response) {
+    var path = url.parse(request.url).pathname;
+    var url_parts = url.parse(request.url, true);
+    var query = url_parts.query;
+    var name = query.name;
+    var comment = query.comment;
+    var new_comment = name + ": " + comment + "\n";
 
-// parse application/json
-app.use(bodyParser.json());
+    console.log("Path: " + path);
+    console.log("Name: " + name);
+    console.log("Comment: " + comment);
+    console.log("New Comment: " + new_comment);
 
-// get comments
-app.get('/comments', function(req, res) {
-    var comments = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/comments.json')));
-    res.json(comments);
+    if (path == "/") {
+        // Read comments.txt
+        fs.readFile('comments.txt', function(err, data) {
+            response.writeHead(200, {'Content-Type': 'text/html'});
+            response.write(data);
+            response.end();
+        });
+    }
+    else if (path == "/add_comment") {
+        // Append new comment to comments.txt
+        fs.appendFile('comments.txt', new_comment, function(err) {
+            if (err) throw err;
+            console.log('New comment appended to comments.txt');
+        });
+        // Redirect to root page
+        response.writeHead(302, {'Location': '/'});
+        response.end();
+    }
+    else {
+        response.writeHead(404);
+        response.end();
+    }
 });
+
+server.listen(8000);
